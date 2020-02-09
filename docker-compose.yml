@@ -1,0 +1,14 @@
+---
+version: '3'
+services:
+  crond:
+    build:
+      context: ./
+    image: ${DOCKER_ID}/${NAME}:${TAG}
+    restart: 'no'
+    environment:
+      # set your timezone.
+      TZ: 'Asia/Tokyo'
+    volumes:
+    - "${PWD}/etc/cron.d/test:/etc/cron.d/test:rw"
+
