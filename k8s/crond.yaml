@@ -1,0 +1,68 @@
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: crond
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: crond
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crond
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crond
+  template:
+    metadata:
+      name: crond
+      labels:
+        app: crond
+    spec:
+      containers:
+      - name: crond
+        image: whitestar/crond:latest
+        env:
+        - name: TZ
+          value: Asia/Tokyo
+        volumeMounts:
+        - name: test-vol
+          mountPath: /etc/cron.d/test
+          subPath: test
+        - name: log-vol
+          mountPath: /tmp/log
+      - name: tail
+        image: debian:stable-slim
+        command:
+        - tail
+        args:
+        - -F
+        - /tmp/log/test.log
+        volumeMounts:
+        - name: log-vol
+          mountPath: /tmp/log
+      volumes:
+      - name: test-vol
+        configMap:
+          name: crond
+          items:
+          - key: test
+            path: test
+      - name: log-vol
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crond
+data:
+  test: |
+    SHELL=/bin/sh
+    PATH=/sbin:/bin:/usr/sbin:/usr/bin
+    MAILTO=""
+    * * * * * root date >> /tmp/log/test.log
